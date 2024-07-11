@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
 use chrono::Utc;
+use std::fmt;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Transaction {
@@ -75,5 +76,19 @@ impl Blockchain {
             }
         }
         true
+    }
+}
+
+impl fmt::Display for Blockchain {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for block in &self.blocks {
+            writeln!(f, "Block {}:", block.index)?;
+            writeln!(f, "  Timestamp: {}", block.timestamp)?;
+            writeln!(f, "  Transaction: {:?}", block.transaction)?;
+            writeln!(f, "  Previous Hash: {}", block.previous_hash)?;
+            writeln!(f, "  Hash: {}", block.hash)?;
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }

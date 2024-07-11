@@ -14,14 +14,17 @@ fn main() {
     };
 
     let transaction = Transaction {
-        sender: "Alice".to_string(),
-        receiver: "Bob".to_string(),
+        sender: "Hushraj".to_string(),
+        receiver: "Reyan".to_string(),
         amount: 10.0,
     };
 
     blockchain.add_block(transaction);
 
     println!("Is blockchain valid? {}", blockchain.is_valid());
+    
+    // Print the blockchain
+    println!("Blockchain:\n{}", blockchain);
 
     storage.store_blockchain(&blockchain);
 }
