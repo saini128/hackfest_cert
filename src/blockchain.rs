@@ -12,7 +12,6 @@ pub struct Transaction {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Block {
-    pub index: u64,
     pub timestamp: u128,
     pub transaction: Transaction,
     pub previous_hash: String,
@@ -20,9 +19,8 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(index: u64, timestamp: u128, transaction: Transaction, previous_hash: String) -> Self {
+    pub fn new(timestamp: u128, transaction: Transaction, previous_hash: String) -> Self {
         let mut block = Block {
-            index,
             timestamp,
             transaction,
             previous_hash: previous_hash.clone(),
@@ -34,7 +32,7 @@ impl Block {
 
     pub fn calculate_hash(&self) -> String {
         let mut hasher = Sha256::new();
-        let data = format!("{:?}{:?}{:?}{:?}", self.index, self.timestamp, self.transaction, self.previous_hash);
+        let data = format!("{:?}{:?}{:?}",self.timestamp, self.transaction, self.previous_hash);
         hasher.update(data.as_bytes());
         format!("{:x}", hasher.finalize())
     }
@@ -58,7 +56,7 @@ impl Blockchain {
         } else {
             self.blocks.last().unwrap().hash.clone()
         };
-        let new_block = Block::new(index, timestamp, transaction, previous_hash);
+        let new_block = Block::new(timestamp, transaction, previous_hash);
         self.blocks.push(new_block);
     }
 
@@ -80,14 +78,16 @@ impl Blockchain {
 }
 
 impl fmt::Display for Blockchain {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut i = 0;
         for block in &self.blocks {
-            writeln!(f, "Block {}:", block.index)?;
+            writeln!(f, "Block {}:", i)?;
             writeln!(f, "  Timestamp: {}", block.timestamp)?;
             writeln!(f, "  Transaction: {:?}", block.transaction)?;
             writeln!(f, "  Previous Hash: {}", block.previous_hash)?;
             writeln!(f, "  Hash: {}", block.hash)?;
             writeln!(f)?;
+            i += 1;
         }
         Ok(())
     }

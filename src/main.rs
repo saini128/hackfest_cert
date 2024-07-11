@@ -14,9 +14,9 @@ fn main() {
     };
 
     let transaction = Transaction {
-        sender: "Hushraj".to_string(),
-        receiver: "Reyan".to_string(),
-        amount: 10.0,
+        sender: "Kanishk".to_string(),
+        receiver: "Akarsh".to_string(),
+        amount: 150.50,
     };
 
     blockchain.add_block(transaction);
