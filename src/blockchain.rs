@@ -3,14 +3,14 @@ use sha2::{Sha256, Digest};
 use chrono::Utc;
 use std::fmt;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct Transaction {
     pub sender: String,
     pub receiver: String,
     pub amount: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct Block {
     pub timestamp: u128,
     pub transaction: Transaction,
@@ -38,7 +38,7 @@ impl Block {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug,Clone)]
 pub struct Blockchain {
     pub blocks: Vec<Block>,
 }

@@ -1,30 +1,93 @@
+use std::sync::{Arc, Mutex};
+use serde::{Deserialize, Serialize};
+use actix_web::{web, App, HttpServer, Responder, HttpResponse};
+use serde_json::json;
+
+// use futures::executor::block_on;
 mod blockchain;
 mod storage;
+use crate::blockchain::{Blockchain, Transaction}; 
+use crate::storage::Storage; 
 
-use blockchain::{Blockchain, Transaction};
-use storage::Storage;
 
-fn main() {
-    let storage = Storage::new("blockchain.db");
+pub type SharedBlockchain = Arc<Mutex<Blockchain>>;
+#[derive(Debug, Deserialize)]
+struct TransactionRequest {
+    sender: String,
+    receiver: String,
+    amount: f64,
+}
 
-    let mut blockchain = if let Some(loaded_blockchain) = storage.load_blockchain() {
-        loaded_blockchain
-    } else {
-        Blockchain::new()
-    };
+#[derive(Debug, Serialize)]
+struct BlockResponse {
+    timestamp: u128,
+    transaction: Transaction,
+    previous_hash: String,
+    hash: String,
+}
 
+
+async fn add_transaction(transaction: web::Json<TransactionRequest>, blockchain: web::Data<SharedBlockchain>) -> impl Responder {
+    let mut blockchain = blockchain.lock().unwrap();
     let transaction = Transaction {
-        sender: "Kanishk".to_string(),
-        receiver: "Akarsh".to_string(),
-        amount: 150.50,
+        sender: transaction.sender.clone(),
+        receiver: transaction.receiver.clone(),
+        amount: transaction.amount,
+    };
+    blockchain.add_block(transaction.clone());
+
+    let response = json!({
+        "message": "Transaction added successfully",
+        "transaction": transaction,
+    });
+
+    HttpResponse::Ok().json(response)
+}
+
+async fn get_last_10_blocks(blockchain: web::Data<SharedBlockchain>) -> impl Responder {
+    let blockchain = blockchain.lock().unwrap();
+    let last_10_blocks: Vec<BlockResponse> = blockchain.blocks.iter().rev().take(10).map(|block| BlockResponse {
+        timestamp: block.timestamp,
+        transaction: block.transaction.clone(),
+        previous_hash: block.previous_hash.clone(),
+        hash: block.hash.clone(),
+    }).collect();
+
+    HttpResponse::Ok().json(last_10_blocks)
+}
+
+async fn get_all_blocks(blockchain: web::Data<SharedBlockchain>) -> impl Responder {
+    let blockchain = blockchain.lock().unwrap();
+    let all_blocks: Vec<BlockResponse> = blockchain.blocks.iter().map(|block| BlockResponse {
+        timestamp: block.timestamp,
+        transaction: block.transaction.clone(),
+        previous_hash: block.previous_hash.clone(),
+        hash: block.hash.clone(),
+    }).collect();
+
+    HttpResponse::Ok().json(all_blocks)
+}
+
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    
+    let storage = Storage::new("blockchain.db");
+    let blockchain = if let Some(loaded_blockchain) = storage.load_blockchain() {
+        Arc::new(Mutex::new(loaded_blockchain))
+    } else {
+        Arc::new(Mutex::new(Blockchain::new()))
     };
 
-    blockchain.add_block(transaction);
-
-    println!("Is blockchain valid? {}", blockchain.is_valid());
     
-    // Print the blockchain
-    println!("Blockchain:\n{}", blockchain);
-
-    storage.store_blockchain(&blockchain);
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(blockchain.clone())) 
+            .route("/add_transaction", web::post().to(add_transaction))
+            .route("/last_10_blocks", web::get().to(get_last_10_blocks))
+            .route("/all_blocks", web::get().to(get_all_blocks))
+    })
+    .bind("127.0.0.1:8080")?
+    .run()
+    .await
 }

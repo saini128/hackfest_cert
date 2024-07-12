@@ -12,11 +12,11 @@ impl Storage {
         Storage { db }
     }
 
-    pub fn store_blockchain(&self, blockchain: &Blockchain) {
-        let serialized = serde_json::to_string(blockchain).unwrap();
-        self.db.insert("blockchain", serialized.as_bytes()).unwrap();
-        self.db.flush().unwrap();
-    }
+    // pub fn store_blockchain(&self, blockchain: &Blockchain) {
+    //     let serialized = serde_json::to_string(blockchain).unwrap();
+    //     self.db.insert("blockchain", serialized.as_bytes()).unwrap();
+    //     self.db.flush().unwrap();
+    // }
 
     pub fn load_blockchain(&self) -> Option<Blockchain> {
         match self.db.get("blockchain").unwrap() {
