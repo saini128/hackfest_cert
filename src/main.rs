@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
-use actix_web::{web, App, HttpServer, Responder, HttpResponse,http::header};
+use actix_web::{web, App, HttpServer, Responder, HttpResponse, http::header};
 use serde_json::json;
 use actix_cors::Cors;
 
@@ -9,8 +9,9 @@ mod storage;
 use crate::blockchain::{Blockchain, Transaction}; 
 use crate::storage::Storage; 
 
-
 pub type SharedBlockchain = Arc<Mutex<Blockchain>>;
+pub type SharedStorage = Arc<Storage>;
+
 #[derive(Debug, Deserialize)]
 struct TransactionRequest {
     sender: String,
@@ -26,8 +27,11 @@ struct BlockResponse {
     hash: String,
 }
 
-
-async fn add_transaction(transaction: web::Json<TransactionRequest>, blockchain: web::Data<SharedBlockchain>) -> impl Responder {
+async fn add_transaction(
+    transaction: web::Json<TransactionRequest>,
+    blockchain: web::Data<SharedBlockchain>,
+    storage: web::Data<SharedStorage>,
+) -> impl Responder {
     let mut blockchain = blockchain.lock().unwrap();
     let transaction = Transaction {
         sender: transaction.sender.clone(),
@@ -35,6 +39,7 @@ async fn add_transaction(transaction: web::Json<TransactionRequest>, blockchain:
         amount: transaction.amount,
     };
     blockchain.add_block(transaction.clone());
+    storage.store_blockchain(&blockchain);
 
     let response = json!({
         "message": "Transaction added successfully",
@@ -68,18 +73,15 @@ async fn get_all_blocks(blockchain: web::Data<SharedBlockchain>) -> impl Respond
     HttpResponse::Ok().json(all_blocks)
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
-    let storage = Storage::new("blockchain.db");
+    let storage = Arc::new(Storage::new("blockchain.db"));
     let blockchain = if let Some(loaded_blockchain) = storage.load_blockchain() {
         Arc::new(Mutex::new(loaded_blockchain))
     } else {
         Arc::new(Mutex::new(Blockchain::new()))
     };
 
-    
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::default()
@@ -90,7 +92,8 @@ async fn main() -> std::io::Result<()> {
                     header::CONTENT_TYPE,
                 ])
             )
-            .app_data(web::Data::new(blockchain.clone())) 
+            .app_data(web::Data::new(blockchain.clone()))
+            .app_data(web::Data::new(storage.clone()))
             .route("/add_transaction", web::post().to(add_transaction))
             .route("/last_10_blocks", web::get().to(get_last_10_blocks))
             .route("/all_blocks", web::get().to(get_all_blocks))
