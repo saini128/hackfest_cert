@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
-use actix_web::{web, App, HttpServer, Responder, HttpResponse};
+use actix_web::{web, App, HttpServer, Responder, HttpResponse,http::header};
 use serde_json::json;
+use actix_cors::Cors;
 
-// use futures::executor::block_on;
 mod blockchain;
 mod storage;
 use crate::blockchain::{Blockchain, Transaction}; 
@@ -82,11 +82,19 @@ async fn main() -> std::io::Result<()> {
     
     HttpServer::new(move || {
         App::new()
+            .wrap(Cors::default()
+                .allow_any_origin()
+                .allowed_methods(vec!["GET", "POST"])
+                .allowed_headers(vec![
+                    header::ACCEPT,
+                    header::CONTENT_TYPE,
+                ])
+            )
             .app_data(web::Data::new(blockchain.clone())) 
             .route("/add_transaction", web::post().to(add_transaction))
             .route("/last_10_blocks", web::get().to(get_last_10_blocks))
             .route("/all_blocks", web::get().to(get_all_blocks))
-    })
+    })    
     .bind("127.0.0.1:8080")?
     .run()
     .await
