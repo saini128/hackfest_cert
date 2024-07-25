@@ -98,7 +98,7 @@ async fn main() -> std::io::Result<()> {
             .route("/last_10_blocks", web::get().to(get_last_10_blocks))
             .route("/all_blocks", web::get().to(get_all_blocks))
     })    
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
